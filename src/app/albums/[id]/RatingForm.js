@@ -21,7 +21,7 @@ export default function RatingForm({ albumId, currentRating }) {
     setSaving(false);
     router.refresh();
   };
-
+  
   return (
     <div className="mt-6">
       <p className="text-sm text-gray-500 mb-2">Your rating:</p>

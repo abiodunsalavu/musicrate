@@ -37,12 +37,10 @@ export default function Home() {
 
   return (
     <main className="p-8">
-      <h1 className="text-2xl font-bold mb-6">Musicrate</h1>
-      <h1>
-      <Link href="/collection" className="text-2xl font-bold mb-6 text-blue-500 hover:underline">
-      My Collection
-      </Link>
+      <h1 className="text-2xl font-bold mb-6">
+        Musicrate - search and add review albums
       </h1>
+
       <form onSubmit={handleSearch} className="mb-6 flex gap-2 max-w-md">
         <input
           type="text"
@@ -51,7 +49,10 @@ export default function Home() {
           onChange={(e) => setQuery(e.target.value)}
           className="border rounded-lg px-4 py-2 flex-1"
         />
-        <button type="submit" className="border rounded-lg px-4 py-2 bg-white text-black font-medium">
+        <button
+          type="submit"
+          className="border rounded-lg px-4 py-2 bg-white text-black font-medium"
+        >
           Search
         </button>
       </form>
@@ -66,11 +67,17 @@ export default function Home() {
             className="border rounded-lg p-4 flex gap-3 items-center cursor-pointer hover:bg-gray-900"
           >
             {album.coverUrl && (
-              <img src={album.coverUrl} alt={album.title} className="w-16 h-16 rounded" />
+              <img
+                src={album.coverUrl}
+                alt={album.title}
+                className="w-16 h-16 rounded"
+              />
             )}
             <div className="flex-1">
               <h2 className="font-semibold">{album.title}</h2>
-              <p className="text-sm text-gray-500">{album.artist} · {album.year}</p>
+              <p className="text-sm text-gray-500">
+                {album.artist} · {album.year}
+              </p>
             </div>
             {navigatingId === album.spotifyId && (
               <span className="text-xs text-gray-500">Loading...</span>
