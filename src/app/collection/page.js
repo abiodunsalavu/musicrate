@@ -17,13 +17,13 @@ export default async function CollectionPage() {
   }
 
   return (
-    <main className="p-8">
+    <main className="p-4 sm:p-8">
       <h1 className="text-2xl font-bold mb-6">My Collection</h1>
 
       {albums.length === 0 ? (
         <p className="text-gray-500">No albums saved yet.</p>
       ) : (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {albums.map((album) => (
             <Link href={`/albums/${album.id}`} key={album.id}>
               <div className="border rounded-lg p-4 flex gap-3 items-center hover:bg-gray-900 cursor-pointer">

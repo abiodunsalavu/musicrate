@@ -36,8 +36,8 @@ export default function Home() {
   };
 
   return (
-    <main className="p-8">
-      <h1 className="text-2xl font-bold mb-6">
+    <main className="p-4 sm:p-8">
+      <h1 className="text-2xl font-bold mb-6 w-full sm:max-w-md">
         Musicrate - search and add review albums
       </h1>
 
@@ -47,7 +47,7 @@ export default function Home() {
           placeholder="Search albums..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="border rounded-lg px-4 py-2 flex-1"
+          className="border rounded-lg px-4 py-2 flex-1 min-w-0"
         />
         <button
           type="submit"
@@ -59,7 +59,7 @@ export default function Home() {
 
       {loading && <p>Searching...</p>}
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {results.map((album) => (
           <div
             key={album.spotifyId}

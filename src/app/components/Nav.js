@@ -12,7 +12,7 @@ export default function Nav() {
   ];
 
   return (
-    <nav className="border-b border-gray-800 px-8 py-4 flex items-center gap-6">
+    <nav className="border-b border-gray-800 px-4 sm:px-8 py-4 flex items-center gap-4 sm:gap-6 overflow-x-auto">
       <Link href="/" className="font-bold text-lg mr-4">
         Musicrate
       </Link>
