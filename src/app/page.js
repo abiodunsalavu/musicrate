@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function Home() {
   const [query, setQuery] = useState("");
@@ -37,7 +38,11 @@ export default function Home() {
   return (
     <main className="p-8">
       <h1 className="text-2xl font-bold mb-6">Musicrate</h1>
-
+      <h1>
+      <Link href="/collection" className="text-2xl font-bold mb-6 text-blue-500 hover:underline">
+      My Collection
+      </Link>
+      </h1>
       <form onSubmit={handleSearch} className="mb-6 flex gap-2 max-w-md">
         <input
           type="text"
