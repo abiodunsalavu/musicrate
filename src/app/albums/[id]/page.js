@@ -3,7 +3,7 @@ import { getAlbumTracks } from "@/lib/spotify";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
 );
 
 function formatDuration(ms) {
@@ -46,7 +46,10 @@ export default async function AlbumPage({ params }) {
               label="Rating"
               value={album.rating ? "★".repeat(album.rating) : "Not rated"}
             />
-            <InfoRow label="Added" value={new Date(album.created_at).toLocaleDateString()} />
+            <InfoRow
+              label="Added"
+              value={new Date(album.created_at).toLocaleDateString()}
+            />
           </div>
         </aside>
 
@@ -55,7 +58,9 @@ export default async function AlbumPage({ params }) {
           <p className="text-gray-500 mt-1">{album.artist}</p>
 
           <div className="border-b border-gray-800 mt-6 mb-4">
-            <span className="border-b-2 border-white pb-2 font-medium text-sm">Tracklist</span>
+            <span className="border-b-2 border-white pb-2 font-medium text-sm">
+              Tracklist
+            </span>
           </div>
 
           {tracks.length === 0 ? (
@@ -65,13 +70,17 @@ export default async function AlbumPage({ params }) {
               {tracks.map((track) => (
                 <li
                   key={track.id}
-                  className="flex justify-between text-sm py-2 border-b border-gray-900"
+                  className="flex items-center justify-between gap-4 text-sm py-2 border-b border-gray-900"
                 >
-                  <span>
-                    <span className="text-gray-500 mr-3">{track.trackNumber}</span>
+                  <span className="truncate">
+                    <span className="text-gray-500 mr-3">
+                      {track.trackNumber}
+                    </span>
                     {track.name}
                   </span>
-                  <span className="text-gray-500">{formatDuration(track.durationMs)}</span>
+                  <span className="text-gray-500 flex-shrink-0">
+                    {formatDuration(track.durationMs)}
+                  </span>
                 </li>
               ))}
             </ol>
