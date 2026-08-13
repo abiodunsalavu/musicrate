@@ -1,31 +1,44 @@
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+import { createClient } from "@/lib/supabase-server";
 
 export async function POST(request) {
-  const body = await request.json();
-  const { title, artist, year, spotifyId, coverUrl } = body;
+  const supabase = await createClient();
 
-  const { data, error } = await supabase
-    .from("albums")
-    .insert([
-      {
-        title,
-        artist,
-        year,
-        spotify_id: spotifyId,
-        cover_url: coverUrl,
-      },
-    ])
-    .select();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  if (error) {
-    console.error("Supabase insert error:", error); // ADD THIS LINE
-    return Response.json({ error: error.message }, { status: 500 });
+  if (!user) {
+    return Response.json({ error: "Not logged in" }, { status: 401 });
   }
 
-  return Response.json({ album: data[0] });
+  const { title, artist, year, spotifyId, coverUrl } = await request.json();
+
+  // find or create the shared album row first
+  let { data: album } = await supabase
+    .from("albums")
+    .select("id")
+    .eq("spotify_id", spotifyId)
+    .maybeSingle();
+
+  if (!album) {
+    const { data: newAlbum, error: albumError } = await supabase
+      .from("albums")
+      .insert([{ title, artist, year, spotify_id: spotifyId, cover_url: coverUrl }])
+      .select()
+      .single();
+
+    if (albumError) {
+      return Response.json({ error: albumError.message }, { status: 500 });
+    }
+    album = newAlbum;
+  }
+
+  // now link it to this user via collections
+  const { error: collectionError } = await supabase
+    .from("collections")
+    .insert([{ user_id: user.id, album_id: album.id }]);
+
+  if (collectionError) {
+    return Response.json({ error: collectionError.message }, { status: 500 });
+  }
+
+  return Response.json({ albumId: album.id });
 }

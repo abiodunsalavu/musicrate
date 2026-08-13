@@ -1,10 +1,7 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase-server";
 import { getAlbumTracks } from "@/lib/spotify";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-);
+import RatingForm from "./RatingForm";
+import AddToCollectionButton from "./AddToCollectionButton";
 
 function formatDuration(ms) {
   const totalSeconds = Math.floor(ms / 1000);
@@ -15,6 +12,11 @@ function formatDuration(ms) {
 
 export default async function AlbumPage({ params }) {
   const { id } = await params;
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const { data: album, error } = await supabase
     .from("albums")
@@ -23,15 +25,43 @@ export default async function AlbumPage({ params }) {
     .single();
 
   if (error || !album) {
-    return <main className="p-8">Album not found.</main>;
+    return <main className="p-4 sm:p-8">Album not found.</main>;
+  }
+
+  let currentRating = null;
+  let inCollection = false;
+
+  if (user) {
+    const { data: entry } = await supabase
+      .from("collections")
+      .select("id, rating")
+      .eq("user_id", user.id)
+      .eq("album_id", album.id)
+      .maybeSingle();
+
+    if (entry) {
+      inCollection = true;
+      currentRating = entry.rating;
+    }
+  }
+
+  if (user) {
+    const { data: entry } = await supabase
+      .from("collections")
+      .select("rating")
+      .eq("user_id", user.id)
+      .eq("album_id", album.id)
+      .maybeSingle();
+
+    currentRating = entry?.rating ?? null;
   }
 
   const tracks = album.spotify_id ? await getAlbumTracks(album.spotify_id) : [];
 
   return (
-    <main className="p-8 max-w-5xl mx-auto">
-      <div className="flex gap-8">
-        <aside className="w-56 flex-shrink-0">
+    <main className="p-4 sm:p-8 max-w-5xl mx-auto">
+      <div className="flex flex-col sm:flex-row gap-6 sm:gap-8">
+        <aside className="w-full sm:w-56 flex-shrink-0">
           {album.cover_url && (
             <img
               src={album.cover_url}
@@ -44,7 +74,7 @@ export default async function AlbumPage({ params }) {
             <InfoRow label="Release Year" value={album.year} />
             <InfoRow
               label="Rating"
-              value={album.rating ? "★".repeat(album.rating) : "Not rated"}
+              value={currentRating ? "★".repeat(currentRating) : "Not rated"}
             />
             <InfoRow
               label="Added"
@@ -57,10 +87,16 @@ export default async function AlbumPage({ params }) {
           <h1 className="text-3xl font-bold">{album.title}</h1>
           <p className="text-gray-500 mt-1">{album.artist}</p>
 
-          <div className="border-b border-gray-800 mt-6 mb-4">
-            <span className="border-b-2 border-white pb-2 font-medium text-sm">
-              Tracklist
-            </span>
+          <div className="mt-6">
+            {!user ? (
+              <p className="text-gray-500 text-sm">
+                Log in to save this album.
+              </p>
+            ) : !inCollection ? (
+              <AddToCollectionButton albumId={album.id} />
+            ) : (
+              <RatingForm albumId={album.id} currentRating={currentRating} />
+            )}
           </div>
 
           {tracks.length === 0 ? (
