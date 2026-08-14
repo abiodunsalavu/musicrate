@@ -38,7 +38,7 @@ export default function Home() {
   return (
     <main className="p-4 sm:p-8">
       <h1 className="text-2xl font-bold mb-6 w-full sm:max-w-md">
-        Musicrate - search and add review albums
+      Welcome to MusicRate! Search for albums and add them to your collection.
       </h1>
 
       <form onSubmit={handleSearch} className="mb-6 flex gap-2 max-w-md">
