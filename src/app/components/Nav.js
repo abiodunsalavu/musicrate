@@ -7,16 +7,25 @@ import { createClient } from "@/lib/supabase-browser";
 
 const supabase = createClient();
 
+
 export default function Nav() {
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
 
   useEffect(() => {
-    // check who's logged in right now, on first load
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
-    });
+  supabase.auth.getUser().then(async ({ data }) => {
+    setUser(data.user);
+    if (data.user) {
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("id", data.user.id)
+        .single();
+      setProfile(profileData);
+    }
+  });
 
     // keep this in sync any time login state changes
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -37,6 +46,8 @@ export default function Nav() {
   const links = [
     { href: "/", label: "Search" },
     { href: "/collection", label: "My Collection" },
+    {href: "/profile" , label: "Profile"}
+    
   ];
 
   return (

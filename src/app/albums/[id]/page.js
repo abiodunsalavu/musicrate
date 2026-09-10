@@ -14,9 +14,7 @@ export default async function AlbumPage({ params }) {
   const { id } = await params;
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
   const { data: album, error } = await supabase
     .from("albums")
@@ -29,12 +27,14 @@ export default async function AlbumPage({ params }) {
   }
 
   let currentRating = null;
+  let currentFavouriteTrack = null;
+  let currentReviewText = null;
   let inCollection = false;
 
   if (user) {
     const { data: entry } = await supabase
       .from("collections")
-      .select("id, rating")
+      .select("id, rating, favourite_track, review_text")
       .eq("user_id", user.id)
       .eq("album_id", album.id)
       .maybeSingle();
@@ -42,18 +42,9 @@ export default async function AlbumPage({ params }) {
     if (entry) {
       inCollection = true;
       currentRating = entry.rating;
+      currentFavouriteTrack = entry.favourite_track;
+      currentReviewText = entry.review_text;
     }
-  }
-
-  if (user) {
-    const { data: entry } = await supabase
-      .from("collections")
-      .select("rating")
-      .eq("user_id", user.id)
-      .eq("album_id", album.id)
-      .maybeSingle();
-
-    currentRating = entry?.rating ?? null;
   }
 
   const tracks = album.spotify_id ? await getAlbumTracks(album.spotify_id) : [];
@@ -72,14 +63,7 @@ export default async function AlbumPage({ params }) {
           <div className="mt-4 text-sm space-y-2">
             <InfoRow label="Artist" value={album.artist} />
             <InfoRow label="Release Year" value={album.year} />
-            <InfoRow
-              label="Rating"
-              value={currentRating ? "★".repeat(currentRating) : "Not rated"}
-            />
-            <InfoRow
-              label="Added"
-              value={new Date(album.created_at).toLocaleDateString()}
-            />
+            <InfoRow label="Added" value={new Date(album.created_at).toLocaleDateString()} />
           </div>
         </aside>
 
@@ -89,14 +73,22 @@ export default async function AlbumPage({ params }) {
 
           <div className="mt-6">
             {!user ? (
-              <p className="text-gray-500 text-sm">
-                Log in to save this album.
-              </p>
+              <p className="text-gray-500 text-sm">Log in to save this album.</p>
             ) : !inCollection ? (
               <AddToCollectionButton albumId={album.id} />
             ) : (
-              <RatingForm albumId={album.id} currentRating={currentRating} />
+              <RatingForm
+                albumId={album.id}
+                tracks={tracks}
+                currentRating={currentRating}
+                currentFavouriteTrack={currentFavouriteTrack}
+                currentReviewText={currentReviewText}
+              />
             )}
+          </div>
+
+          <div className="border-b border-gray-800 mt-6 mb-4">
+            <span className="border-b-2 border-white pb-2 font-medium text-sm">Tracklist</span>
           </div>
 
           {tracks.length === 0 ? (
@@ -109,14 +101,10 @@ export default async function AlbumPage({ params }) {
                   className="flex items-center justify-between gap-4 text-sm py-2 border-b border-gray-900"
                 >
                   <span className="truncate">
-                    <span className="text-gray-500 mr-3">
-                      {track.trackNumber}
-                    </span>
+                    <span className="text-gray-500 mr-3">{track.trackNumber}</span>
                     {track.name}
                   </span>
-                  <span className="text-gray-500 flex-shrink-0">
-                    {formatDuration(track.durationMs)}
-                  </span>
+                  <span className="text-gray-500 flex-shrink-0">{formatDuration(track.durationMs)}</span>
                 </li>
               ))}
             </ol>
