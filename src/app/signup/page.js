@@ -19,7 +19,12 @@ export default function SignUpPage() {
     setError(null);
     setLoading(true);
 
-    const { error } = await supabase.auth.signUp({ email, password });
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      // the confirmation email links back here, then on to onboarding
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=/welcome` },
+    });
 
     setLoading(false);
 
@@ -28,7 +33,7 @@ export default function SignUpPage() {
       return;
     }
 
-    router.push("/");
+    router.push("/welcome");
     router.refresh();
   };
 

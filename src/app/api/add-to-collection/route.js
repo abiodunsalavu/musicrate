@@ -15,7 +15,8 @@ export async function POST(request) {
     .from("collections")
     .insert([{ user_id: user.id, album_id: albumId }]);
 
-  if (error) {
+  // already in the collection counts as success
+  if (error && error.code !== "23505") {
     console.error("Collection update failed", error);
     return Response.json({ error: "Could not update collection" }, { status: 500 });
   }

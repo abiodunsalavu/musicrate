@@ -5,11 +5,14 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase-browser";
 import Modal from "@/app/components/Modal";
 import Avatar from "@/app/components/Avatar";
-import { toStaticSquare, toStillFrame, extensionFor } from "@/lib/images";
-
-const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-const MAX_AVATAR_INPUT_BYTES = 10 * 1024 * 1024; // shrunk to a small WEBP before upload
-const MAX_BANNER_BYTES = 4 * 1024 * 1024;
+import {
+  ALLOWED_IMAGE_TYPES,
+  MAX_AVATAR_INPUT_BYTES,
+  MAX_BANNER_BYTES,
+  validateImage,
+  uploadAvatar,
+  uploadBanner,
+} from "@/lib/profile-images";
 
 export default function EditProfileModal({
   currentUsername,
@@ -35,18 +38,9 @@ export default function EditProfileModal({
     e.target.value = "";
     if (!file) return null;
 
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      setError("Upload a JPG, PNG, WEBP or GIF image.");
-      return null;
-    }
-
-    if (file.size > maxBytes) {
-      setError(`Image must be smaller than ${maxBytes / 1024 / 1024}MB.`);
-      return null;
-    }
-
-    setError(null);
-    return file;
+    const problem = validateImage(file, maxBytes);
+    setError(problem);
+    return problem ? null : file;
   };
 
   const handleAvatarChange = (e) => {
@@ -70,18 +64,6 @@ export default function EditProfileModal({
     setBannerPreviewUrl(null);
   };
 
-  const upload = async (bucket, path, body, contentType) => {
-    const { error: uploadError } = await supabase.storage
-      .from(bucket)
-      .upload(path, body, { upsert: true, contentType });
-
-    if (uploadError) throw uploadError;
-
-    // the file name stays the same, so add a version to skip stale caches
-    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-    return `${data.publicUrl}?v=${Date.now()}`;
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
@@ -93,16 +75,11 @@ export default function EditProfileModal({
       const { data: { user } } = await supabase.auth.getUser();
 
       if (avatarFile) {
-        // avatars are always a static 400x400 image, so GIFs become their first frame
-        const avatar = await toStaticSquare(avatarFile);
-        updates.avatarUrl = await upload("avatars", `${user.id}/avatar.${extensionFor(avatar)}`, avatar, avatar.type);
+        updates.avatarUrl = await uploadAvatar(supabase, user.id, avatarFile);
       }
 
       if (bannerFile) {
-        const extension = bannerFile.type.split("/")[1].replace("jpeg", "jpg");
-        const still = await toStillFrame(bannerFile);
-        await upload("banners", `${user.id}/banner-still.jpg`, still, still.type);
-        updates.bannerUrl = await upload("banners", `${user.id}/banner.${extension}`, bannerFile, bannerFile.type);
+        updates.bannerUrl = await uploadBanner(supabase, user.id, bannerFile);
       } else if (removeBanner) {
         updates.bannerUrl = "";
       }
@@ -147,7 +124,7 @@ export default function EditProfileModal({
           <div className="mt-2 flex gap-2">
             <label className="btn-secondary flex-1 cursor-pointer">
               {bannerPreviewUrl ? "Change banner" : "Upload banner"}
-              <input type="file" accept={ALLOWED_TYPES.join(",")} onChange={handleBannerChange} className="sr-only" />
+              <input type="file" accept={ALLOWED_IMAGE_TYPES.join(",")} onChange={handleBannerChange} className="sr-only" />
             </label>
             {bannerPreviewUrl && (
               <button type="button" onClick={handleRemoveBanner} className="btn-ghost">
@@ -163,7 +140,7 @@ export default function EditProfileModal({
           <div>
             <label className="btn-secondary cursor-pointer">
               Change photo
-              <input type="file" accept={ALLOWED_TYPES.join(",")} onChange={handleAvatarChange} className="sr-only" />
+              <input type="file" accept={ALLOWED_IMAGE_TYPES.join(",")} onChange={handleAvatarChange} className="sr-only" />
             </label>
             <p className="mt-1.5 text-xs text-subtle">Cropped to a square. GIFs use their first frame.</p>
           </div>

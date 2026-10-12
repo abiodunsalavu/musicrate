@@ -19,16 +19,22 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-
-    setLoading(false);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
+      setLoading(false);
       setError(error.message);
       return;
     }
 
-    router.push("/");
+    // send people who haven't set up their profile yet to onboarding
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("onboarded_at")
+      .eq("id", data.user.id)
+      .maybeSingle();
+
+    router.push(profile && !profile.onboarded_at ? "/welcome" : "/");
     router.refresh();
   };
 

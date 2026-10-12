@@ -9,7 +9,7 @@ export async function POST(request) {
     return Response.json({ error: "Not logged in" }, { status: 401 });
   }
 
-  const { username, displayName, avatarUrl, bannerUrl } = await request.json();
+  const { username, displayName, avatarUrl, bannerUrl, completeOnboarding } = await request.json();
 
   const updates = {};
 
@@ -58,6 +58,14 @@ export async function POST(request) {
     } else {
       updates.banner_url = bannerUrl;
     }
+  }
+
+  if (completeOnboarding === true) {
+    updates.onboarded_at = new Date().toISOString();
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return Response.json({ success: true });
   }
 
   const { data: updated, error } = await supabase
