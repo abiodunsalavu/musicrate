@@ -33,9 +33,9 @@ export default function RemoveFromCollectionButton({ albumId, hasRating }) {
     <button
       onClick={handleRemove}
       disabled={status !== "idle"}
-      className="mt-3 text-sm text-gray-500 hover:text-red-400 disabled:opacity-50"
+      className="btn-ghost mt-2 w-full hover:text-score-low-fg"
     >
-      {status === "loading" ? "Removing..." : "Remove from Collection"}
+      {status === "loading" ? "Removing…" : "Remove from collection"}
     </button>
   );
 }

@@ -10,9 +10,9 @@ export default function EditProfileButton(props) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="border rounded-lg px-4 py-2 text-sm bg-white text-black font-medium"
+        className="btn-primary flex-1"
       >
-        Edit Profile
+        Edit profile
       </button>
 
       {open && <EditProfileModal {...props} onClose={() => setOpen(false)} />}

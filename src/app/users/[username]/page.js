@@ -1,11 +1,15 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase-server";
+import Avatar from "@/app/components/Avatar";
+import AlbumTile from "@/app/components/AlbumTile";
+import ScoreBadge from "@/app/components/ScoreBadge";
+import { bannerStillUrl } from "@/lib/images";
 
 async function getProfile(supabase, username) {
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, username, display_name, profile_picture_url, created_at")
+    .select("id, username, display_name, profile_picture_url, banner_url, created_at")
     .eq("username", decodeURIComponent(username).toLowerCase())
     .maybeSingle();
 
@@ -44,84 +48,124 @@ export default async function UserProfilePage({ params }) {
   const collection = entries ?? [];
   const rated = collection.filter((entry) => entry.rating);
   const averageRating = rated.length
-    ? (rated.reduce((sum, entry) => sum + entry.rating, 0) / rated.length).toFixed(1)
+    ? rated.reduce((sum, entry) => sum + entry.rating, 0) / rated.length
     : null;
+  const distribution = Array.from({ length: 10 }, (_, i) => rated.filter((entry) => entry.rating === i + 1).length);
+  const maxCount = Math.max(1, ...distribution);
+  const topCovers = [...rated]
+    .sort((a, b) => b.rating - a.rating)
+    .map((entry) => entry.albums.cover_url)
+    .filter(Boolean)
+    .slice(0, 4);
 
   return (
-    <main className="p-4 sm:p-8 max-w-5xl mx-auto w-full">
-      <header className="flex flex-col sm:flex-row items-center sm:items-end gap-4 sm:gap-6 text-center sm:text-left">
-        <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-800 border border-gray-700 flex-shrink-0">
-          {profile.profile_picture_url ? (
-            <img src={profile.profile_picture_url} alt={profile.username} className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-500 text-2xl">?</div>
-          )}
-        </div>
+    <main className="w-full pb-16">
+      <ProfileBanner bannerUrl={profile.banner_url} topCovers={topCovers} />
 
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold">{profile.display_name || profile.username}</h1>
-          <p className="text-gray-500 text-sm">@{profile.username}</p>
-          <p className="text-gray-600 text-xs mt-1">
-            Joined {new Date(profile.created_at).toLocaleDateString(undefined, { month: "long", year: "numeric" })}
-          </p>
-        </div>
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <header className="relative -mt-14 flex flex-col items-center gap-4 text-center sm:-mt-16 sm:flex-row sm:items-end sm:gap-6 sm:text-left">
+          <Avatar
+            url={profile.profile_picture_url}
+            name={profile.display_name || profile.username}
+            size="lg"
+            className="border-4 border-bg shadow-lg"
+          />
 
-        {isOwnProfile && (
-          <Link href="/profile" className="border rounded-lg px-4 py-2 text-sm bg-white text-black font-medium">
-            Edit Profile
-          </Link>
-        )}
-      </header>
+          <div className="min-w-0 flex-1 sm:pb-1">
+            <h1 className="text-4xl font-extrabold sm:text-5xl">{profile.display_name || profile.username}</h1>
+            <p className="mt-1 text-muted">
+              @{profile.username} · Joined{" "}
+              {new Date(profile.created_at).toLocaleDateString(undefined, { month: "long", year: "numeric" })}
+            </p>
+          </div>
 
-      <div className="flex justify-center sm:justify-start gap-8 mt-6 py-4 border-y border-gray-800 text-center sm:text-left">
-        <Stat label="Albums" value={collection.length} />
-        <Stat label="Rated" value={rated.length} />
-        <Stat label="Avg rating" value={averageRating ? `${averageRating}/10` : "–"} />
-      </div>
-
-      <h2 className="text-lg font-semibold mt-8 mb-4">Collection</h2>
-
-      {collection.length === 0 ? (
-        <p className="text-gray-500 text-sm">
-          {isOwnProfile ? "You haven't added any albums yet." : "No albums in this collection yet."}
-        </p>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {collection.map((entry) => (
-            <Link href={`/albums/${entry.albums.id}`} key={entry.id}>
-              <div className="border border-gray-800 rounded-lg p-4 flex gap-4 hover:bg-gray-900 h-full">
-                {entry.albums.cover_url && (
-                  <img src={entry.albums.cover_url} alt={entry.albums.title} className="w-20 h-20 rounded flex-shrink-0" />
-                )}
-                <div className="min-w-0">
-                  <h3 className="font-semibold truncate">{entry.albums.title}</h3>
-                  <p className="text-sm text-gray-500 truncate">
-                    {entry.albums.artist} · {entry.albums.year}
-                  </p>
-                  <p className="text-sm mt-1">
-                    {entry.rating ? <span className="font-medium">{entry.rating}/10</span> : <span className="text-gray-500">Not rated yet</span>}
-                  </p>
-                  {entry.favourite_track && (
-                    <p className="text-xs text-gray-500 mt-1 truncate">Favourite: {entry.favourite_track}</p>
-                  )}
-                  {entry.review_text && (
-                    <p className="text-sm text-gray-400 italic mt-1">&ldquo;{entry.review_text}&rdquo;</p>
-                  )}
-                </div>
-              </div>
+          {isOwnProfile && (
+            <Link href="/profile" className="btn-secondary sm:mb-1">
+              Edit profile
             </Link>
+          )}
+        </header>
+
+        <section className="mt-8 grid gap-4 sm:grid-cols-[auto_minmax(0,1fr)]">
+          <div className="card flex gap-8 p-5">
+            <Stat label="Albums" value={collection.length} />
+            <Stat label="Rated" value={rated.length} />
+            <div>
+              {averageRating != null ? <ScoreBadge score={averageRating} size="md" /> : <p className="font-display text-3xl font-bold">–</p>}
+              <p className="eyebrow mt-1 text-subtle">Avg score</p>
+            </div>
+          </div>
+
+          <div className="card p-5">
+            <p className="eyebrow text-subtle">How they rate</p>
+            <div className="mt-3 flex h-16 items-end gap-1.5" aria-label="Rating distribution">
+              {distribution.map((count, i) => (
+                <div key={i} className="flex flex-1 flex-col items-center gap-1">
+                  <div
+                    className={`w-full rounded-t-md ${count ? "bg-accent" : "bg-surface-2"}`}
+                    style={{ height: `${Math.max(6, (count / maxCount) * 48)}px` }}
+                    title={`${count} rated ${i + 1}`}
+                  />
+                  <span className="text-[11px] tabular-nums text-subtle">{i + 1}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <h2 className="mt-12 text-2xl font-bold">Collection</h2>
+
+        {collection.length === 0 ? (
+          <p className="mt-3 text-muted">
+            {isOwnProfile ? "You haven't added any albums yet." : "No albums in this collection yet."}
+          </p>
+        ) : (
+          <div className="mt-5 grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 lg:grid-cols-5">
+            {collection.map((entry) => (
+              <AlbumTile key={entry.id} album={entry.albums} rating={entry.rating} review={entry.review_text} />
+            ))}
+          </div>
+        )}
+        </div>
+      </main>
+    );
+  }
+
+  function ProfileBanner({ bannerUrl, topCovers }) {
+    if (bannerUrl) {
+      return (
+        <div className="h-40 w-full overflow-hidden bg-surface-2 sm:h-60">
+          <picture>
+            {/* a still frame for people who turn off animations */}
+            <source srcSet={bannerStillUrl(bannerUrl)} media="(prefers-reduced-motion: reduce)" />
+            <img src={bannerUrl} alt="" className="h-full w-full object-cover" />
+          </picture>
+      </div>
+    );
+  }
+
+  // default: a blurred collage of their highest-rated album covers
+  return (
+    <div className="relative h-40 w-full overflow-hidden bg-surface-2 sm:h-60" aria-hidden="true">
+      {topCovers.length > 0 ? (
+        <div className="absolute -inset-10 flex scale-110 blur-2xl saturate-150">
+          {topCovers.map((cover) => (
+            <div key={cover} className="h-full flex-1 bg-cover bg-center" style={{ backgroundImage: `url(${cover})` }} />
           ))}
         </div>
+      ) : (
+        <div className="absolute inset-0 bg-gradient-to-br from-accent/40 via-surface-2 to-score-low-bg" />
       )}
-    </main>
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-bg/20 to-bg" />
+    </div>
   );
 }
 
 function Stat({ label, value }) {
   return (
     <div>
-      <p className="text-xl font-bold">{value}</p>
-      <p className="text-gray-500 text-xs uppercase tracking-wide">{label}</p>
+      <p className="font-display text-3xl font-bold leading-10 tabular-nums">{value}</p>
+      <p className="eyebrow mt-1 text-subtle">{label}</p>
     </div>
   );
 }

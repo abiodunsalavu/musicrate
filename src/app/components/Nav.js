@@ -4,9 +4,16 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase-browser";
+import ThemeToggle from "./ThemeToggle";
+import Avatar from "./Avatar";
 
 const supabase = createClient();
 
+const links = [
+  { href: "/", label: "Search" },
+  { href: "/collection", label: "Collection" },
+  { href: "/profile", label: "Profile" },
+];
 
 export default function Nav() {
   const pathname = usePathname();
@@ -15,21 +22,25 @@ export default function Nav() {
   const [profile, setProfile] = useState(null);
 
   useEffect(() => {
-  supabase.auth.getUser().then(async ({ data }) => {
-    setUser(data.user);
-    if (data.user) {
-      const { data: profileData } = await supabase
+    const loadProfile = async (currentUser) => {
+      setUser(currentUser);
+      if (!currentUser) {
+        setProfile(null);
+        return;
+      }
+      const { data } = await supabase
         .from("profiles")
-        .select("display_name")
-        .eq("id", data.user.id)
-        .single();
-      setProfile(profileData);
-    }
-  });
+        .select("username, display_name, profile_picture_url")
+        .eq("id", currentUser.id)
+        .maybeSingle();
+      setProfile(data);
+    };
+
+    supabase.auth.getUser().then(({ data }) => loadProfile(data.user));
 
     // keep this in sync any time login state changes
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      loadProfile(session?.user ?? null);
     });
 
     return () => {
@@ -43,52 +54,60 @@ export default function Nav() {
     router.refresh();
   };
 
-  const links = [
-    { href: "/", label: "Search" },
-    { href: "/collection", label: "My Collection" },
-    {href: "/profile" , label: "Profile"}
-    
-  ];
+  const linkClass = (href) =>
+    `rounded-full px-3.5 py-2 text-sm font-medium transition-colors ${
+      pathname === href ? "bg-surface-2 text-fg" : "text-muted hover:text-fg"
+    }`;
 
   return (
-    <nav className="border-b border-gray-800 px-4 sm:px-8 py-4 flex items-center gap-4 sm:gap-6 overflow-x-auto">
-      <Link href="/" className="font-bold text-lg mr-4">
-        Musicrate
-      </Link>
-
-      {links.map((link) => (
-        <Link
-          key={link.href}
-          href={link.href}
-          className={
-            pathname === link.href
-              ? "text-white font-medium text-sm"
-              : "text-gray-500 text-sm hover:text-gray-300"
-          }
-        >
-          {link.label}
+    <header className="sticky top-0 z-40 border-b border-border bg-bg/85 backdrop-blur-md">
+      <nav className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3 sm:px-6">
+        <Link href="/" className="mr-2 flex items-center gap-2 font-display text-xl font-extrabold tracking-tight">
+          <span className="h-5 w-5 rounded-full bg-accent shadow-[inset_0_0_0_5px_var(--bg),inset_0_0_0_6px_var(--accent)]" aria-hidden="true" />
+          musicrate
         </Link>
-      ))}
 
-      <div className="ml-auto flex items-center gap-4 text-sm">
-        {user ? (
-          <>
-            <span className="text-gray-500 hidden sm:inline">{user.email}</span>
-            <button onClick={handleLogout} className="text-gray-500 hover:text-gray-300">
-              Log Out
-            </button>
-          </>
-        ) : (
-          <>
-            <Link href="/login" className="text-gray-500 hover:text-gray-300">
-              Log In
+        <div className="hidden items-center gap-1 sm:flex">
+          {links.map((link) => (
+            <Link key={link.href} href={link.href} className={linkClass(link.href)}>
+              {link.label}
             </Link>
-            <Link href="/signup" className="text-white font-medium">
-              Sign Up
-            </Link>
-          </>
-        )}
+          ))}
+        </div>
+
+        <div className="ml-auto flex items-center gap-2">
+          <ThemeToggle />
+          {user ? (
+            <>
+              {profile?.username && (
+                <Link href={`/users/${profile.username}`} aria-label="Your public profile" className="rounded-full">
+                  <Avatar url={profile.profile_picture_url} name={profile.display_name || profile.username} size="sm" />
+                </Link>
+              )}
+              <button onClick={handleLogout} className="btn-ghost px-3">
+                Log out
+              </button>
+            </>
+          ) : (
+            <>
+              <Link href="/login" className="btn-ghost px-3">
+                Log in
+              </Link>
+              <Link href="/signup" className="btn-primary hidden px-4 sm:inline-flex">
+                Sign up
+              </Link>
+            </>
+          )}
+        </div>
+      </nav>
+
+      <div className="flex gap-1 overflow-x-auto px-4 pb-2.5 sm:hidden">
+        {links.map((link) => (
+          <Link key={link.href} href={link.href} className={linkClass(link.href)}>
+            {link.label}
+          </Link>
+        ))}
       </div>
-    </nav>
+    </header>
   );
 }

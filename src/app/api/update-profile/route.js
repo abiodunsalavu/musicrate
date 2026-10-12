@@ -9,7 +9,7 @@ export async function POST(request) {
     return Response.json({ error: "Not logged in" }, { status: 401 });
   }
 
-  const { username, displayName, avatarUrl } = await request.json();
+  const { username, displayName, avatarUrl, bannerUrl } = await request.json();
 
   const updates = {};
 
@@ -43,14 +43,21 @@ export async function POST(request) {
   }
 
   if (avatarUrl !== undefined && avatarUrl !== "") {
-    // only accept images from this user's own folder in our avatars bucket
-    const allowedPrefix = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${user.id}/`;
-
-    if (typeof avatarUrl !== "string" || !avatarUrl.startsWith(allowedPrefix)) {
+    if (!isOwnStorageUrl(avatarUrl, "avatars", user.id)) {
       return Response.json({ error: "Invalid profile picture" }, { status: 400 });
     }
 
     updates.profile_picture_url = avatarUrl;
+  }
+
+  if (bannerUrl !== undefined) {
+    if (bannerUrl === "") {
+      updates.banner_url = null;
+    } else if (!isOwnStorageUrl(bannerUrl, "banners", user.id)) {
+      return Response.json({ error: "Invalid banner" }, { status: 400 });
+    } else {
+      updates.banner_url = bannerUrl;
+    }
   }
 
   const { data: updated, error } = await supabase
@@ -72,4 +79,25 @@ export async function POST(request) {
   }
 
   return Response.json({ success: true });
+}
+
+// only accept files from this user's own folder in one of our public storage buckets
+function isOwnStorageUrl(value, bucket, userId) {
+  if (typeof value !== "string") return false;
+
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    return false;
+  }
+
+  const expected = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL);
+  const folder = `/storage/v1/object/public/${bucket}/${userId}/`;
+
+  return (
+    url.origin === expected.origin &&
+    url.pathname.startsWith(folder) &&
+    !decodeURIComponent(url.pathname).includes("..")
+  );
 }

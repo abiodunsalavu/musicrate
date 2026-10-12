@@ -2,27 +2,34 @@
 
 import { useState } from "react";
 import RatingModal from "./RatingModal";
+import ScoreBadge from "@/app/components/ScoreBadge";
 
 export default function RatingForm({ albumId, tracks, currentRating, currentFavouriteTrack, currentReviewText }) {
   const [modalOpen, setModalOpen] = useState(false);
 
   return (
-    <div className="mt-6">
+    <div>
+      <h2 className="text-xl font-bold">Your rating</h2>
+
       {currentRating ? (
-        <div className="text-sm space-y-1">
-          <p>Your rating: <span className="font-medium">{currentRating}/10</span></p>
-          {currentFavouriteTrack && <p className="text-gray-500">Favourite: {currentFavouriteTrack}</p>}
-          {currentReviewText && <p className="text-gray-400 italic mt-1">&ldquo;{currentReviewText}&rdquo;</p>}
+        <div className="mt-3 space-y-2">
+          <div className="flex items-center gap-3">
+            <ScoreBadge score={currentRating} size="md" />
+            <span className="text-sm text-muted">out of 10</span>
+          </div>
+          {currentFavouriteTrack && (
+            <p className="text-sm text-muted">
+              Favourite track: <span className="text-fg">{currentFavouriteTrack}</span>
+            </p>
+          )}
+          {currentReviewText && <p className="text-muted">&ldquo;{currentReviewText}&rdquo;</p>}
         </div>
       ) : (
-        <p className="text-gray-500 text-sm">You haven&apos;t rated this album yet.</p>
+        <p className="mt-1 text-muted">You haven&apos;t rated this album yet.</p>
       )}
 
-      <button
-        onClick={() => setModalOpen(true)}
-        className="mt-3 border rounded-lg px-4 py-2 text-sm bg-white text-black font-medium"
-      >
-        {currentRating ? "Edit Rating" : "Create Rating"}
+      <button onClick={() => setModalOpen(true)} className="btn-primary mt-4 w-full">
+        {currentRating ? "Edit rating" : "Rate this album"}
       </button>
 
       {modalOpen && (

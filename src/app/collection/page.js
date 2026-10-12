@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase-server";
 import Link from "next/link";
+import AlbumTile from "@/app/components/AlbumTile";
 
 export default async function CollectionPage() {
   const supabase = await createClient();
@@ -8,45 +9,47 @@ export default async function CollectionPage() {
 
   if (!user) {
     return (
-      <main className="p-4 sm:p-8">
-        <p className="text-gray-500">Log in to see your collection.</p>
+      <main className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6">
+        <h1 className="text-4xl font-extrabold">Your collection</h1>
+        <p className="mt-2 text-lg text-muted">Log in to start collecting and rating albums.</p>
+        <Link href="/login" className="btn-primary mt-6">Log in</Link>
       </main>
     );
   }
 
   const { data: entries, error } = await supabase
     .from("collections")
-    .select("id, rating, albums (id, title, artist, year, cover_url)")
+    .select("id, rating, review_text, albums (id, title, artist, year, cover_url)")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
   if (error) {
-    return <main className="p-4 sm:p-8">Could not load your collection. Please try again.</main>;
+    return (
+      <main className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6">
+        <p className="text-muted">Couldn&apos;t load your collection. Try again.</p>
+      </main>
+    );
   }
 
+  const rated = entries.filter((entry) => entry.rating).length;
+
   return (
-    <main className="p-4 sm:p-8">
-      <h1 className="text-2xl font-bold mb-6">My Collection</h1>
+    <main className="mx-auto w-full max-w-6xl px-4 pt-10 pb-16 sm:px-6 sm:pt-14">
+      <h1 className="text-4xl font-extrabold sm:text-5xl">Your collection</h1>
+      <p className="mt-2 text-muted">
+        {entries.length} {entries.length === 1 ? "album" : "albums"} · {rated} rated
+      </p>
 
       {entries.length === 0 ? (
-        <p className="text-gray-500">No albums saved yet.</p>
+        <div className="card mt-8 p-8 text-center">
+          <h2 className="text-2xl font-bold">Start your collection</h2>
+          <p className="mt-2 text-muted">Search for an album you love and add it here.</p>
+          <Link href="/" className="btn-primary mt-5">Search albums</Link>
+        </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="mt-8 grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 lg:grid-cols-5">
           {entries.map((entry) => (
-            <Link href={`/albums/${entry.albums.id}`} key={entry.id}>
-              <div className="border rounded-lg p-4 flex gap-3 items-center hover:bg-gray-900 cursor-pointer">
-                {entry.albums.cover_url && (
-                  <img src={entry.albums.cover_url} alt={entry.albums.title} className="w-16 h-16 rounded" />
-                )}
-                <div>
-                  <h2 className="font-semibold">{entry.albums.title}</h2>
-                  <p className="text-sm text-gray-500">{entry.albums.artist} · {entry.albums.year}</p>
-                  <p className="text-sm mt-1">
-                    {entry.rating ? <span className="font-medium">{entry.rating}/10</span> : <span className="text-gray-500">Not rated yet</span>}
-                  </p>
-                </div>
-              </div>
-            </Link>
+            <AlbumTile key={entry.id} album={entry.albums} rating={entry.rating} />
           ))}
         </div>
       )}

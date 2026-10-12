@@ -28,11 +28,11 @@ export default function AddToCollectionButton({ albumId }) {
     <button
       onClick={handleAdd}
       disabled={status !== "idle"}
-      className="border rounded-lg px-4 py-2 text-sm bg-white text-black font-medium disabled:opacity-50"
+      className="btn-primary mt-4 w-full"
     >
-      {status === "loading" && "Adding..."}
-      {status === "added" && "Added ✓"}
-      {status === "idle" && "Add to Collection"}
+      {status === "loading" && "Adding…"}
+      {status === "added" && "Added"}
+      {status === "idle" && "Add to collection"}
     </button>
   );
 }

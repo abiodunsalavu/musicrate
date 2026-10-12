@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Avatar from "./components/Avatar";
 
 // add an entry here (and a matching type in /api/search) to add a new results tab
 const TABS = [
@@ -74,101 +75,126 @@ export default function Home() {
   const activeResults = results[activeTab];
 
   return (
-    <main className="p-4 sm:p-8">
-      <h1 className="text-2xl font-bold mb-6 w-full sm:max-w-md">
-      Welcome to MusicRate! Search for albums and people, and add albums to your collection.
-      </h1>
+    <main className="mx-auto w-full max-w-6xl px-4 pb-16 sm:px-6">
+      <section className="pt-10 pb-8 sm:pt-16 sm:pb-10">
+        <p className="eyebrow text-accent-text">Your music diary</p>
+        <h1 className="mt-3 max-w-2xl text-4xl font-extrabold sm:text-6xl">
+          Rate what you&apos;re listening to.
+        </h1>
+        <p className="mt-4 max-w-xl text-lg text-muted">
+          Search any album, score it out of 10, and see what everyone else thinks.
+        </p>
 
-      <form onSubmit={handleSearch} className="mb-6 flex gap-2 max-w-md">
-        <input
-          type="text"
-          placeholder="Search albums or users..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="border rounded-lg px-4 py-2 flex-1 min-w-0"
-        />
-        <button
-          type="submit"
-          className="border rounded-lg px-4 py-2 bg-white text-black font-medium"
-        >
-          Search
-        </button>
-      </form>
+        <form onSubmit={handleSearch} className="mt-8 flex max-w-xl gap-2">
+          <label htmlFor="search" className="sr-only">Search albums or users</label>
+          <input
+            id="search"
+            type="search"
+            placeholder="Search albums or users"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="input min-h-13 rounded-2xl text-lg"
+          />
+          <button type="submit" className="btn-primary min-h-13 rounded-2xl px-6">
+            Search
+          </button>
+        </form>
+      </section>
 
-      {loading && <p>Searching...</p>}
+      {loading && <ResultsSkeleton />}
 
       {searched && !loading && (
         <>
-          <div className="flex gap-6 border-b border-gray-800 mb-4">
+          <div role="tablist" className="mb-6 flex gap-2">
             {TABS.map((tab) => (
               <button
                 key={tab.type}
+                role="tab"
+                aria-selected={activeTab === tab.type}
                 onClick={() => setActiveTab(tab.type)}
-                className={
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
                   activeTab === tab.type
-                    ? "border-b-2 border-white pb-2 font-medium text-sm -mb-px"
-                    : "pb-2 text-sm text-gray-500 hover:text-gray-300"
-                }
+                    ? "bg-fg text-bg"
+                    : "border border-border text-muted hover:text-fg"
+                }`}
               >
-                {tab.label} ({results[tab.type].length})
+                {tab.label} <span className="opacity-70">{results[tab.type].length}</span>
               </button>
             ))}
           </div>
 
           {activeResults.length === 0 && (
-            <p className="text-gray-500 text-sm">No {activeTab} found for &ldquo;{query}&rdquo;.</p>
+            <p className="text-muted">No {activeTab} found for &ldquo;{query}&rdquo;.</p>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {activeTab === "albums" &&
-              results.albums.map((album) => (
-                <div
+          {activeTab === "albums" && (
+            <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 lg:grid-cols-5">
+              {results.albums.map((album) => (
+                <button
                   key={album.spotifyId}
                   onClick={() => handleViewAlbum(album)}
-                  className="border rounded-lg p-4 flex gap-3 items-center cursor-pointer hover:bg-gray-900"
+                  className="group text-left"
                 >
-                  {album.coverUrl && (
-                    <img
-                      src={album.coverUrl}
-                      alt={album.title}
-                      className="w-16 h-16 rounded"
-                    />
-                  )}
-                  <div className="flex-1">
-                    <h2 className="font-semibold">{album.title}</h2>
-                    <p className="text-sm text-gray-500">
-                      {album.artist} · {album.year}
-                    </p>
+                  <div className="relative aspect-square overflow-hidden rounded-xl border border-border bg-surface-2">
+                    {album.coverUrl && (
+                      <img
+                        src={album.coverUrl}
+                        alt=""
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                    )}
+                    {navigatingId === album.spotifyId && (
+                      <div className="absolute inset-0 grid place-items-center bg-overlay text-sm font-semibold text-white">
+                        Opening…
+                      </div>
+                    )}
                   </div>
-                  {navigatingId === album.spotifyId && (
-                    <span className="text-xs text-gray-500">Loading...</span>
-                  )}
-                </div>
+                  <h2 className="mt-2.5 truncate font-sans text-sm font-semibold tracking-normal group-hover:text-accent-text">
+                    {album.title}
+                  </h2>
+                  <p className="truncate text-sm text-muted">
+                    {album.artist} · {album.year}
+                  </p>
+                </button>
               ))}
+            </div>
+          )}
 
-            {activeTab === "users" &&
-              results.users.map((user) => (
+          {activeTab === "users" && (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {results.users.map((user) => (
                 <Link
                   key={user.username}
                   href={`/users/${user.username}`}
-                  className="border rounded-lg p-4 flex gap-3 items-center hover:bg-gray-900"
+                  className="card flex items-center gap-3 p-4 transition-colors hover:bg-surface-2"
                 >
-                  <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-800 border border-gray-700 flex-shrink-0">
-                    {user.avatarUrl ? (
-                      <img src={user.avatarUrl} alt={user.username} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-500">?</div>
-                    )}
-                  </div>
+                  <Avatar url={user.avatarUrl} name={user.displayName || user.username} />
                   <div className="min-w-0">
-                    <h2 className="font-semibold truncate">{user.displayName || user.username}</h2>
-                    <p className="text-sm text-gray-500 truncate">@{user.username}</p>
+                    <h2 className="truncate font-sans text-base font-semibold tracking-normal">
+                      {user.displayName || user.username}
+                    </h2>
+                    <p className="truncate text-sm text-muted">@{user.username}</p>
                   </div>
                 </Link>
               ))}
-          </div>
+            </div>
+          )}
         </>
       )}
     </main>
+  );
+}
+
+function ResultsSkeleton() {
+  return (
+    <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 lg:grid-cols-5" aria-label="Loading results">
+      {Array.from({ length: 10 }).map((_, i) => (
+        <div key={i} className="animate-pulse">
+          <div className="aspect-square rounded-xl bg-surface-2" />
+          <div className="mt-3 h-3.5 w-3/4 rounded bg-surface-2" />
+          <div className="mt-2 h-3 w-1/2 rounded bg-surface-2" />
+        </div>
+      ))}
+    </div>
   );
 }
