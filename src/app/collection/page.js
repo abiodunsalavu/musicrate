@@ -42,7 +42,7 @@ export default async function CollectionPage() {
                   <h2 className="font-semibold">{entry.albums.title}</h2>
                   <p className="text-sm text-gray-500">{entry.albums.artist} · {entry.albums.year}</p>
                   <p className="text-sm mt-1">
-                    {entry.rating ? "★".repeat(entry.rating) : "Not rated yet"}
+                    {entry.rating ? <span className="font-medium">{entry.rating}/10</span> : <span className="text-gray-500">Not rated yet</span>}
                   </p>
                 </div>
               </div>
