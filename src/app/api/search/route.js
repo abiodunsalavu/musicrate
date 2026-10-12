@@ -1,8 +1,15 @@
 import { getSpotifyToken } from "@/lib/spotify";
+import { createClient } from "@/lib/supabase-server";
+
+const SEARCHERS = {
+  albums: searchAlbums,
+  users: searchUsers,
+};
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("q")?.trim();
+  const type = searchParams.get("type") ?? "albums";
 
   if (!query) {
     return Response.json({ error: "Missing search query" }, { status: 400 });
@@ -12,6 +19,16 @@ export async function GET(request) {
     return Response.json({ error: "Search query is too long" }, { status: 400 });
   }
 
+  const search = SEARCHERS[type];
+
+  if (!search) {
+    return Response.json({ error: "Unknown search type" }, { status: 400 });
+  }
+
+  return search(query);
+}
+
+async function searchAlbums(query) {
   const accessToken = await getSpotifyToken();
 
   const searchResponse = await fetch(
@@ -35,4 +52,36 @@ export async function GET(request) {
   }));
 
   return Response.json({ albums });
+}
+
+async function searchUsers(query) {
+  // keep only letters, numbers, spaces and underscores so the text can't change the
+  // filter syntax below or add LIKE wildcards
+  const term = query.replace(/[^\p{L}\p{N} _]/gu, "").trim();
+
+  if (!term) {
+    return Response.json({ users: [] });
+  }
+
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("username, display_name, profile_picture_url")
+    .or(`username.ilike.*${term}*,display_name.ilike.*${term}*`)
+    .order("username")
+    .limit(20);
+
+  if (error) {
+    console.error("User search failed", error);
+    return Response.json({ error: "Search is unavailable right now" }, { status: 500 });
+  }
+
+  const users = data.map((profile) => ({
+    username: profile.username,
+    displayName: profile.display_name,
+    avatarUrl: profile.profile_picture_url,
+  }));
+
+  return Response.json({ users });
 }
