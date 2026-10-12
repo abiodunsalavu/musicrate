@@ -4,12 +4,6 @@ import { getAlbum, isValidSpotifyId } from "@/lib/spotify";
 export async function POST(request) {
   const supabase = await createClient();
 
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return Response.json({ error: "Not logged in" }, { status: 401 });
-  }
-
   // only trust the Spotify ID from the client; album details come from Spotify itself
   const { spotifyId } = await request.json();
 
@@ -23,6 +17,13 @@ export async function POST(request) {
   let { data: album } = await findAlbum();
 
   if (!album) {
+    // anyone can view existing albums, but only signed-in users can add new ones
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return Response.json({ error: "Not logged in" }, { status: 401 });
+    }
+
     const details = await getAlbum(spotifyId);
 
     if (!details) {

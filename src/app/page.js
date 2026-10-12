@@ -33,6 +33,11 @@ export default function Home() {
 
     const data = await response.json();
 
+    if (response.status === 401) {
+      router.push("/login");
+      return;
+    }
+
     if (!response.ok) {
       setNavigatingId(null);
       return;
