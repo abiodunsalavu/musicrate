@@ -53,10 +53,11 @@ export async function POST(request) {
     updates.profile_picture_url = avatarUrl;
   }
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("profiles")
     .update(updates)
-    .eq("id", user.id);
+    .eq("id", user.id)
+    .select("id");
 
   if (error) {
     if (error.code === "23505") {
@@ -64,6 +65,10 @@ export async function POST(request) {
     }
     console.error("Failed to update profile", error);
     return Response.json({ error: "Could not update profile" }, { status: 500 });
+  }
+
+  if (updated.length === 0) {
+    return Response.json({ error: "Profile not found" }, { status: 404 });
   }
 
   return Response.json({ success: true });
