@@ -1,4 +1,4 @@
-import { getSpotifyToken } from "@/lib/spotify";
+import { spotifyFetch } from "@/lib/spotify";
 import { createClient } from "@/lib/supabase-server";
 
 const SEARCHERS = {
@@ -29,11 +29,8 @@ export async function GET(request) {
 }
 
 async function searchAlbums(query) {
-  const accessToken = await getSpotifyToken();
-
-  const searchResponse = await fetch(
-    `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=album&limit=10`,
-    { headers: { Authorization: `Bearer ${accessToken}` } }
+  const searchResponse = await spotifyFetch(
+    `https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=album&limit=10`
   );
 
   if (!searchResponse.ok) {

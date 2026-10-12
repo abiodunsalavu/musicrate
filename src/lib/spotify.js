@@ -8,8 +8,8 @@ export function isValidSpotifyId(id) {
 let cachedToken = null;
 let cachedTokenExpiresAt = 0;
 
-export async function getSpotifyToken() {
-  if (cachedToken && Date.now() < cachedTokenExpiresAt) {
+export async function getSpotifyToken({ forceRefresh = false } = {}) {
+  if (!forceRefresh && cachedToken && Date.now() < cachedTokenExpiresAt) {
     return cachedToken;
   }
 
@@ -24,6 +24,7 @@ export async function getSpotifyToken() {
         ).toString("base64"),
     },
     body: "grant_type=client_credentials",
+    cache: "no-store",
   });
 
   if (!tokenResponse.ok) {
@@ -36,14 +37,24 @@ export async function getSpotifyToken() {
   return cachedToken;
 }
 
+// GET from the Spotify API, retrying once with a fresh token if Spotify rejects the cached one
+export async function spotifyFetch(url) {
+  const request = async (token) =>
+    fetch(url, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
+
+  let response = await request(await getSpotifyToken());
+
+  if (response.status === 401) {
+    response = await request(await getSpotifyToken({ forceRefresh: true }));
+  }
+
+  return response;
+}
+
 export async function getAlbum(spotifyId) {
   if (!isValidSpotifyId(spotifyId)) return null;
 
-  const accessToken = await getSpotifyToken();
-
-  const response = await fetch(`https://api.spotify.com/v1/albums/${spotifyId}`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
+  const response = await spotifyFetch(`https://api.spotify.com/v1/albums/${spotifyId}`);
 
   if (!response.ok) return null;
 
@@ -61,16 +72,12 @@ export async function getAlbum(spotifyId) {
 export async function getAlbumTracks(spotifyId) {
   if (!isValidSpotifyId(spotifyId)) return [];
 
-  const accessToken = await getSpotifyToken();
+  const response = await spotifyFetch(`https://api.spotify.com/v1/albums/${spotifyId}/tracks?limit=50`);
 
-  const response = await fetch(
-    `https://api.spotify.com/v1/albums/${spotifyId}/tracks?limit=50`,
-    {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    }
-  );
-
-  if (!response.ok) return [];
+  if (!response.ok) {
+    console.error("Spotify tracklist request failed", response.status);
+    return [];
+  }
 
   const data = await response.json();
 
