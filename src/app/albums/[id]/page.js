@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase-server";
 import { getAlbumTracks } from "@/lib/spotify";
 import RatingForm from "./RatingForm";
@@ -49,6 +50,22 @@ export default async function AlbumPage({ params }) {
   }
 
   const tracks = album.spotify_id ? await getAlbumTracks(album.spotify_id) : [];
+
+  const { data: ratingEntries } = await supabase
+    .from("collections")
+    .select("id, user_id, rating, favourite_track, review_text")
+    .eq("album_id", album.id)
+    .not("rating", "is", null)
+    .order("created_at", { ascending: false });
+
+  const ratings = ratingEntries ?? [];
+  const { data: raters } = ratings.length
+    ? await supabase
+        .from("profiles")
+        .select("id, username, display_name, profile_picture_url")
+        .in("id", ratings.map((entry) => entry.user_id))
+    : { data: [] };
+  const ratersById = Object.fromEntries((raters ?? []).map((rater) => [rater.id, rater]));
 
   return (
     <main className="p-4 sm:p-8 max-w-5xl mx-auto">
@@ -112,6 +129,52 @@ export default async function AlbumPage({ params }) {
                 </li>
               ))}
             </ol>
+          )}
+
+          <div className="border-b border-gray-800 mt-10 mb-4">
+            <span className="border-b-2 border-white pb-2 font-medium text-sm">
+              Ratings{ratings.length > 0 && ` (${ratings.length})`}
+            </span>
+          </div>
+
+          {ratings.length === 0 ? (
+            <p className="text-gray-500 text-sm">Nobody has rated this album yet.</p>
+          ) : (
+            <ul className="space-y-4">
+              {ratings.map((entry) => {
+                const rater = ratersById[entry.user_id];
+                if (!rater) return null;
+
+                return (
+                  <li key={entry.id} className="flex gap-3 text-sm">
+                    <Link href={`/users/${rater.username}`} className="flex-shrink-0">
+                      <div className="w-9 h-9 rounded-full overflow-hidden bg-gray-800 border border-gray-700">
+                        {rater.profile_picture_url ? (
+                          <img src={rater.profile_picture_url} alt={rater.username} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs">?</div>
+                        )}
+                      </div>
+                    </Link>
+                    <div className="min-w-0">
+                      <p>
+                        <Link href={`/users/${rater.username}`} className="font-medium hover:underline">
+                          {rater.display_name || rater.username}
+                        </Link>
+                        <span className="text-gray-500"> rated it </span>
+                        <span className="font-medium">{entry.rating}/10</span>
+                      </p>
+                      {entry.favourite_track && (
+                        <p className="text-gray-500 text-xs mt-0.5">Favourite: {entry.favourite_track}</p>
+                      )}
+                      {entry.review_text && (
+                        <p className="text-gray-400 italic mt-1">&ldquo;{entry.review_text}&rdquo;</p>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
           )}
         </div>
       </div>
