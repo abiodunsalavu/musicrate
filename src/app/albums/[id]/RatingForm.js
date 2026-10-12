@@ -12,10 +12,10 @@ export default function RatingForm({ albumId, tracks, currentRating, currentFavo
         <div className="text-sm space-y-1">
           <p>Your rating: <span className="font-medium">{currentRating}/10</span></p>
           {currentFavouriteTrack && <p className="text-gray-500">Favourite: {currentFavouriteTrack}</p>}
-          {currentReviewText && <p className="text-gray-400 italic mt-1">"{currentReviewText}"</p>}
+          {currentReviewText && <p className="text-gray-400 italic mt-1">&ldquo;{currentReviewText}&rdquo;</p>}
         </div>
       ) : (
-        <p className="text-gray-500 text-sm">You haven't rated this album yet.</p>
+        <p className="text-gray-500 text-sm">You haven&apos;t rated this album yet.</p>
       )}
 
       <button

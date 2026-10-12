@@ -23,7 +23,7 @@ export async function POST(request) {
     return Response.json({ error: "Review must be 140 characters or fewer" }, { status: 400 });
   }
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("collections")
     .update({
       rating,
@@ -31,11 +31,16 @@ export async function POST(request) {
       review_text: reviewText || null,
     })
     .eq("user_id", user.id)
-    .eq("album_id", albumId);
+    .eq("album_id", albumId)
+    .select("id");
 
   if (error) {
     console.error("Failed to save rating", error);
     return Response.json({ error: "Could not save rating" }, { status: 500 });
+  }
+
+  if (updated.length === 0) {
+    return Response.json({ error: "Add this album to your collection before rating it" }, { status: 404 });
   }
 
   return Response.json({ success: true });
