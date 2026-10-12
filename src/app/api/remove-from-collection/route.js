@@ -18,7 +18,8 @@ export async function POST(request) {
     .eq("album_id", albumId);
 
   if (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error("Collection update failed", error);
+    return Response.json({ error: "Could not update collection" }, { status: 500 });
   }
 
   return Response.json({ success: true });

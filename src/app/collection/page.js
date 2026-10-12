@@ -21,7 +21,7 @@ export default async function CollectionPage() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    return <main className="p-4 sm:p-8">Error loading collection: {error.message}</main>;
+    return <main className="p-4 sm:p-8">Could not load your collection. Please try again.</main>;
   }
 
   return (

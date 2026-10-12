@@ -11,18 +11,31 @@ export async function POST(request) {
 
   const { albumId, rating, favouriteTrack, reviewText } = await request.json();
 
+  if (!Number.isInteger(rating) || rating < 1 || rating > 10) {
+    return Response.json({ error: "Rating must be a whole number from 1 to 10" }, { status: 400 });
+  }
+
+  if (favouriteTrack != null && (typeof favouriteTrack !== "string" || favouriteTrack.length > 200)) {
+    return Response.json({ error: "Invalid favourite track" }, { status: 400 });
+  }
+
+  if (reviewText != null && (typeof reviewText !== "string" || reviewText.length > 140)) {
+    return Response.json({ error: "Review must be 140 characters or fewer" }, { status: 400 });
+  }
+
   const { error } = await supabase
     .from("collections")
     .update({
       rating,
-      favourite_track: favouriteTrack,
-      review_text: reviewText,
+      favourite_track: favouriteTrack || null,
+      review_text: reviewText || null,
     })
     .eq("user_id", user.id)
     .eq("album_id", albumId);
 
   if (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error("Failed to save rating", error);
+    return Response.json({ error: "Could not save rating" }, { status: 500 });
   }
 
   return Response.json({ success: true });

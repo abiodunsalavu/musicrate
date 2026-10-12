@@ -18,7 +18,7 @@ export default function Home() {
     setLoading(true);
     const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
     const data = await response.json();
-    setResults(data.albums);
+    setResults(data.albums ?? []);
     setLoading(false);
   };
 
@@ -32,6 +32,12 @@ export default function Home() {
     });
 
     const data = await response.json();
+
+    if (!response.ok) {
+      setNavigatingId(null);
+      return;
+    }
+
     router.push(`/albums/${data.id}`);
   };
 
