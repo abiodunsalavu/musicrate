@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase-server";
 import { getAlbumTracks } from "@/lib/spotify";
 import RatingForm from "./RatingForm";
 import AddToCollectionButton from "./AddToCollectionButton";
+import RemoveFromCollectionButton from "./RemoveFromCollectionButton";
 
 function formatDuration(ms) {
   const totalSeconds = Math.floor(ms / 1000);
@@ -77,13 +78,16 @@ export default async function AlbumPage({ params }) {
             ) : !inCollection ? (
               <AddToCollectionButton albumId={album.id} />
             ) : (
-              <RatingForm
-                albumId={album.id}
-                tracks={tracks}
-                currentRating={currentRating}
-                currentFavouriteTrack={currentFavouriteTrack}
-                currentReviewText={currentReviewText}
-              />
+              <>
+                <RatingForm
+                  albumId={album.id}
+                  tracks={tracks}
+                  currentRating={currentRating}
+                  currentFavouriteTrack={currentFavouriteTrack}
+                  currentReviewText={currentReviewText}
+                />
+                <RemoveFromCollectionButton albumId={album.id} hasRating={Boolean(currentRating)} />
+              </>
             )}
           </div>
 
