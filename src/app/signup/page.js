@@ -7,6 +7,35 @@ import { createClient } from "@/lib/supabase-browser";
 
 const supabase = createClient();
 
+// Supabase's weak-password message lists every allowed character
+// ("...at least one character of each: abcdef..., ABCDEF..., 0123..., !@#$..."),
+// which reads like you need one of *every* character. Turn it into plain English.
+function friendlyPasswordError(error) {
+  if (error?.code !== "weak_password") return error.message;
+
+  const reasons = error.reasons ?? [];
+  const msg = error.message ?? "";
+  const parts = [];
+
+  if (reasons.includes("characters") || /one character of each/i.test(msg)) {
+    const needs = [];
+    if (/abcdefghijklmnopqrstuvwxyz/.test(msg)) needs.push("a lowercase letter");
+    if (/ABCDEFGHIJKLMNOPQRSTUVWXYZ/.test(msg)) needs.push("an uppercase letter");
+    if (/0123456789/.test(msg)) needs.push("a number");
+    if (/[!@#$%^&*]/.test(msg)) needs.push("a symbol (like ! or #)");
+    if (needs.length) {
+      const list = needs.length > 1 ? `${needs.slice(0, -1).join(", ")} and ${needs.at(-1)}` : needs[0];
+      parts.push(`Your password needs at least ${list}.`);
+    }
+  }
+  if (reasons.includes("length")) parts.push("It's too short.");
+  if (reasons.includes("pwned")) {
+    parts.push("This password has appeared in a known data breach — please choose a different one.");
+  }
+
+  return parts.length ? parts.join(" ") : "That password is too weak. Try a longer one with a mix of letters, numbers and symbols.";
+}
+
 export default function SignUpPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -29,7 +58,7 @@ export default function SignUpPage() {
     setLoading(false);
 
     if (error) {
-      setError(error.message);
+      setError(friendlyPasswordError(error));
       return;
     }
 
@@ -68,7 +97,9 @@ export default function SignUpPage() {
               className="input"
               required
             />
-          <p className="mt-1.5 text-xs text-subtle">At least 8 characters.</p>
+          <p className="mt-1.5 text-xs text-subtle">
+            At least 8 characters, with an uppercase letter, a lowercase letter, a number and a symbol.
+          </p>
           </div>
 
           {error && <p className="text-sm text-score-low-fg">{error}</p>}
